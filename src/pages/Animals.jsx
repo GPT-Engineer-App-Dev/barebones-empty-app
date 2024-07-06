@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
+import { supabase } from '../integrations/supabase';
 
 const Animals = () => {
   const { data: animals, isLoading, isError } = useAnimals();
@@ -22,6 +23,7 @@ const Animals = () => {
 
   const [editingAnimal, setEditingAnimal] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
@@ -48,19 +50,59 @@ const Animals = () => {
     setIsEditModalOpen(false);
   };
 
+  const openAddModal = () => {
+    reset({});
+    setIsAddModalOpen(true);
+  };
+
+  const closeAddModal = () => {
+    setIsAddModalOpen(false);
+  };
+
   const onSubmit = async (data) => {
     try {
-      await updateAnimal.mutateAsync({ id: editingAnimal.id, ...data });
-      toast.success("Animal updated successfully");
-      closeEditModal();
+      const imageFile = data.image[0];
+      let imageUrl = data.image_url;
+
+      if (imageFile) {
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('animal-images')
+          .upload(`${Date.now()}-${imageFile.name}`, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('animal-images')
+          .getPublicUrl(uploadData.path);
+
+        imageUrl = publicUrl;
+      }
+
+      const animalData = {
+        ...data,
+        image_url: imageUrl,
+      };
+
+      if (editingAnimal) {
+        await updateAnimal.mutateAsync({ id: editingAnimal.id, ...animalData });
+        toast.success("Animal updated successfully");
+        closeEditModal();
+      } else {
+        await addAnimal.mutateAsync(animalData);
+        toast.success("Animal added successfully");
+        closeAddModal();
+      }
     } catch (error) {
-      toast.error("Failed to update animal");
+      toast.error(editingAnimal ? "Failed to update animal" : "Failed to add animal");
     }
   };
 
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-5">Animals</h1>
+      <div className="flex justify-between items-center mb-5">
+        <h1 className="text-2xl font-bold">Animals</h1>
+        <Button onClick={openAddModal}>Add Animal</Button>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -93,10 +135,10 @@ const Animals = () => {
         </TableBody>
       </Table>
 
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+      <Dialog open={isEditModalOpen || isAddModalOpen} onOpenChange={editingAnimal ? setIsEditModalOpen : setIsAddModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Animal</DialogTitle>
+            <DialogTitle>{editingAnimal ? 'Edit Animal' : 'Add Animal'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-4 py-4">
@@ -123,6 +165,17 @@ const Animals = () => {
                 {errors.species && <p className="text-red-500 col-span-3 col-start-2">{errors.species.message}</p>}
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="image" className="text-right">
+                  Image
+                </Label>
+                <Input
+                  id="image"
+                  type="file"
+                  className="col-span-3"
+                  {...register("image")}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="image_url" className="text-right">
                   Image URL
                 </Label>
@@ -140,7 +193,7 @@ const Animals = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="secondary" onClick={closeEditModal}>
+              <Button type="button" variant="secondary" onClick={editingAnimal ? closeEditModal : closeAddModal}>
                 Cancel
               </Button>
               <Button type="submit">Save changes</Button>
