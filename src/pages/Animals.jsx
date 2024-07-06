@@ -25,7 +25,7 @@ const Animals = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
   if (isLoading) return <div>Loading animals...</div>;
   if (isError) return <div>Error loading animals</div>;
@@ -90,6 +90,7 @@ const Animals = () => {
 
       if (data.image && data.image[0]) {
         imageUrl = await uploadImage(data.image[0]);
+        setValue('image_url', imageUrl); // Automatically set the image_url field
       }
 
       const animalData = {
