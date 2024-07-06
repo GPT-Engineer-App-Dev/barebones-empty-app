@@ -59,23 +59,37 @@ const Animals = () => {
     setIsAddModalOpen(false);
   };
 
+  const uploadImage = async (file) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('animal-images')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('animal-images')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image: ', error);
+      throw error;
+    }
+  };
+
   const onSubmit = async (data) => {
     try {
-      const imageFile = data.image[0];
       let imageUrl = data.image_url;
 
-      if (imageFile) {
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('animal-images')
-          .upload(`${Date.now()}-${imageFile.name}`, imageFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('animal-images')
-          .getPublicUrl(uploadData.path);
-
-        imageUrl = publicUrl;
+      if (data.image && data.image[0]) {
+        imageUrl = await uploadImage(data.image[0]);
       }
 
       const animalData = {
