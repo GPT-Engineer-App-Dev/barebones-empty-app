@@ -3,6 +3,16 @@ import { useAnimals, useAddAnimal, useUpdateAnimal, useDeleteAnimal } from '../i
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useForm } from "react-hook-form";
 
 const Animals = () => {
   const { data: animals, isLoading, isError } = useAnimals();
@@ -11,6 +21,9 @@ const Animals = () => {
   const deleteAnimal = useDeleteAnimal();
 
   const [editingAnimal, setEditingAnimal] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
   if (isLoading) return <div>Loading animals...</div>;
   if (isError) return <div>Error loading animals</div>;
@@ -21,6 +34,27 @@ const Animals = () => {
       toast.success("Animal deleted successfully");
     } catch (error) {
       toast.error("Failed to delete animal");
+    }
+  };
+
+  const openEditModal = (animal) => {
+    setEditingAnimal(animal);
+    reset(animal);
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setEditingAnimal(null);
+    setIsEditModalOpen(false);
+  };
+
+  const onSubmit = async (data) => {
+    try {
+      await updateAnimal.mutateAsync({ id: editingAnimal.id, ...data });
+      toast.success("Animal updated successfully");
+      closeEditModal();
+    } catch (error) {
+      toast.error("Failed to update animal");
     }
   };
 
@@ -47,7 +81,7 @@ const Animals = () => {
                 )}
               </TableCell>
               <TableCell>
-                <Button variant="outline" className="mr-2" onClick={() => setEditingAnimal(animal)}>
+                <Button variant="outline" className="mr-2" onClick={() => openEditModal(animal)}>
                   Edit
                 </Button>
                 <Button variant="destructive" onClick={() => handleDelete(animal.id)}>
@@ -58,6 +92,62 @@ const Animals = () => {
           ))}
         </TableBody>
       </Table>
+
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Animal</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Name
+                </Label>
+                <Input
+                  id="name"
+                  className="col-span-3"
+                  {...register("name", { required: "Name is required" })}
+                />
+                {errors.name && <p className="text-red-500 col-span-3 col-start-2">{errors.name.message}</p>}
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="species" className="text-right">
+                  Species
+                </Label>
+                <Input
+                  id="species"
+                  className="col-span-3"
+                  {...register("species", { required: "Species is required" })}
+                />
+                {errors.species && <p className="text-red-500 col-span-3 col-start-2">{errors.species.message}</p>}
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="image_url" className="text-right">
+                  Image URL
+                </Label>
+                <Input
+                  id="image_url"
+                  className="col-span-3"
+                  {...register("image_url", { 
+                    pattern: {
+                      value: /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/,
+                      message: "Invalid URL format"
+                    }
+                  })}
+                />
+                {errors.image_url && <p className="text-red-500 col-span-3 col-start-2">{errors.image_url.message}</p>}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="secondary" onClick={closeEditModal}>
+                Cancel
+              </Button>
+              <Button type="submit">Save changes</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
