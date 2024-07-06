@@ -175,22 +175,6 @@ const Animals = () => {
                   {...register("image")}
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="image_url" className="text-right">
-                  Image URL
-                </Label>
-                <Input
-                  id="image_url"
-                  className="col-span-3"
-                  {...register("image_url", { 
-                    pattern: {
-                      value: /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/,
-                      message: "Invalid URL format"
-                    }
-                  })}
-                />
-                {errors.image_url && <p className="text-red-500 col-span-3 col-start-2">{errors.image_url.message}</p>}
-              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="secondary" onClick={editingAnimal ? closeEditModal : closeAddModal}>
