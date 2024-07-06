@@ -1,10 +1,14 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Card, CardContent } from "@/components/ui/card";
 
 const Index = () => {
   return (
-    <div className="text-center">
-      <h1 className="text-3xl">Your Blank Canvas</h1>
-      <p>Chat with the agent to start making edits.</p>
+    <div className="container mx-auto flex items-center justify-center min-h-[calc(100vh-4rem)]">
+      <Card className="w-full max-w-md">
+        <CardContent className="text-center py-10">
+          <h1 className="text-3xl font-bold mb-2">Welcome to Barebones App</h1>
+          <p className="text-muted-foreground">Your journey starts here</p>
+        </CardContent>
+      </Card>
     </div>
   );
 };
